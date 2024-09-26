@@ -23,7 +23,13 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "baseUrl": ".",  // Set the base URL for module resolution
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "exclude": [
     "node_modules"
@@ -33,6 +39,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx",
-    "__tests__/**/*"
-, "jest.config.js"  ]
+    "__tests__/**/*",
+    "jest.config.js"
+  ]
 }

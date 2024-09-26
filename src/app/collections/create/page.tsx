@@ -1,13 +1,13 @@
 "use client";
 
+import CreateNewCollection from "@/components/forms/collections";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import CreateChildAssetForm from "../../../components/forms/payloads/childAsset";
 
-export default function CreateChildPayloadPage() {
+export default function CreateCollectionPage() {
     return (
         <div className="py-2">
             <DropdownMenu />
-            <CreateChildAssetForm />
+            <CreateNewCollection />
         </div>
     );
 };
