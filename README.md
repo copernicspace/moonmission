@@ -23,3 +23,7 @@ Then, run the command to build the container:
 ```bash
     docker-compose up --build
 ```
+
+
+# To-Do
+1. Github Action to push db migrations to prod
