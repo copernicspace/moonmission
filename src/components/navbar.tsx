@@ -74,20 +74,28 @@ function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+          <Link href="">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <Grid className="mr-2 h-4 w-4" />
-          <span>Dashboard</span>
+          <Link href="">
+            <Grid className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <PlusSquare className="mr-2 h-4 w-4" />
-          <span>New Project</span>
+          <Link href="payload/create">
+            <PlusSquare className="mr-2 h-4 w-4" />
+            <span>New Child Asset</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+          <Link href="collections/create">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Create Colection</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />

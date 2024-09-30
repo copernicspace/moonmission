@@ -5,7 +5,6 @@ import "./globals.css";
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
 import { createPagesBrowserClient } from "@supabase/auth-helpers-nextjs";
 import { useState } from "react";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { NavbarComponent } from "@/components/navbar";
 
 const geistSans = localFont({

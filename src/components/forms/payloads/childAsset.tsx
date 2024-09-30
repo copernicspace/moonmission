@@ -44,7 +44,6 @@ export default function CreateChildAssetForm() {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         let thumbnailUrl = '';
-        let mainMediaUrl = '';
         let mainFileUrl = '';
 
         const generateUniqueFileName = (fileName: string) => {
@@ -64,7 +63,6 @@ export default function CreateChildAssetForm() {
                 alert("Error uploading main media: " + mediaError.message);
                 return;
             };
-
             thumbnailUrl = mediaData.path;
         };
 
@@ -87,7 +85,7 @@ export default function CreateChildAssetForm() {
                 title: formData.title,
                 description: formData.description,
                 thumbnail: thumbnailUrl,
-                mainmedia: thumbnailUrl,
+                mainmedia: thumbnailUrl,  // Assuming main media refers to the same as thumbnail
                 mainfile: mainFileUrl,
                 units: formData.units,
                 collection_id: formData.collection_id,
@@ -109,7 +107,6 @@ export default function CreateChildAssetForm() {
         { title: 'Title', component: <Input type="text" placeholder="Title" value={formData.title} onChange={(e) => handleChange(e, 'title')} required /> },
         { title: 'Description', component: <Textarea placeholder="Description" value={formData.description} onChange={(e) => handleTextareaChange(e, 'description')} required /> },
         { title: 'Main Media', component: <Input type="file" onChange={(e) => handleChange(e, 'mainMedia')} required /> },
-        // { title: 'Main File', component: <Input type="file" onChange={(e) => handleChange(e, 'mainFile')} required /> },
         { title: 'Units', component: <Input type="text" placeholder="Units" value={formData.units} onChange={(e) => handleChange(e, 'units')} required /> },
         { title: 'Collection ID', component: <Input type="number" placeholder="Collection ID" value={formData.collection_id || ''} onChange={(e) => handleChange(e, 'collection_id')} /> },
         { title: 'Parent Payload ID', component: <Input type="number" placeholder="Parent Payload ID" value={formData.parent_payload_id || ''} onChange={(e) => handleChange(e, 'parent_payload_id')} required /> },
@@ -148,7 +145,7 @@ export default function CreateChildAssetForm() {
                             >
                                 Next <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
-                        )};
+                        )}
                     </CardFooter>
                 </form>
             </Card>

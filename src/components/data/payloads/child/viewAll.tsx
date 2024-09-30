@@ -1,21 +1,36 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from 'react'
-import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileIcon, ImageIcon, InfoIcon, PackageIcon } from "lucide-react"
-import { ChildRecord } from 'types/payloads'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { InfoIcon, PackageIcon } from "lucide-react"
 
-export function GalleryGridComponent() {
+interface ChildRecord {
+  id: number;
+  title: string;
+  description: string;
+  thumbnail: string;
+  collections?: { name: string };
+  parentpayloads?: { title: string };
+}
+
+export function FilterableGalleryGridComponent() {
   const supabase = useSupabaseClient();
-  const session = useSession();
 
   const [records, setRecords] = useState<ChildRecord[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredRecords, setFilteredRecords] = useState<ChildRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCollection, setSelectedCollection] = useState('');
+  const [selectedParentPayload, setSelectedParentPayload] = useState('');
+
+  const [collections, setCollections] = useState<string[]>([]);
+  const [parentPayloads, setParentPayloads] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -23,75 +38,117 @@ export function GalleryGridComponent() {
         setLoading(true)
         const { data, error } = await supabase
           .from('childassets')
-          .select('*')
+          .select(`
+            *,
+            collections(name),
+            parentpayloads(title)
+          `)
 
         if (error) throw error
         if (data) {
           setRecords(data);
-        };
+          setFilteredRecords(data);
+          
+        // Use Array.from() to convert Set to an array before iterating
+        const uniqueCollections = Array.from(
+          new Set(data.map(record => record.collections?.name).filter(Boolean))
+        );
+
+        const uniqueParentPayloads = Array.from(
+          new Set(data.map(record => record.parentpayloads?.title).filter(Boolean))
+        );
+          
+          setCollections(uniqueCollections);
+          setParentPayloads(uniqueParentPayloads);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load assets');
       } finally {
         setLoading(false);
-      };
+      }
     };
 
     fetchRecords();
   }, [supabase]);
 
-  const filteredRecords = records.filter(record =>
-    record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const filtered = records.filter(record =>
+      (record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       record.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (selectedCollection === 'all' || record.collections?.name === selectedCollection) &&   
+      (selectedParentPayload === 'all' || record.parentpayloads?.title === selectedParentPayload)   
+    );
+    setFilteredRecords(filtered);
+  }, [searchTerm, selectedCollection, selectedParentPayload, records]);  
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Asset Gallery</h1>
-      <Input
-        type="text"
-        placeholder="Search assets..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4"
-      />
-      {loading ? (
-        <p>Loading assets...</p>
-      ) : error ? (
-        <p className="text-red-500">{error}</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <Input
+          type="text"
+          placeholder="Search assets..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-grow"
+        />
+        <Select value={selectedCollection} onValueChange={setSelectedCollection}>
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Collection" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Collections</SelectItem>
+            {collections.map((collection) => (
+              <SelectItem key={collection} value={collection}>{collection}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedParentPayload} onValueChange={setSelectedParentPayload}>
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Parent Payload" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Parent Payloads</SelectItem>
+            {parentPayloads.map((payload) => (
+              <SelectItem key={payload} value={payload}>{payload}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading && <p>Loading assets...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRecords.map((record) => (
-            <Card key={record.id} className="flex flex-col">
+            <Card key={record.id} className="shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">{record.title}</CardTitle>
+                <CardTitle className="text-xl font-semibold">{record.title}</CardTitle>
               </CardHeader>
-              <CardContent className="flex-grow">
-                <div className="aspect-square bg-gray-200 mb-2 flex items-center justify-center">
-                  {/* <ImageIcon className="w-12 h-12 text-gray-400" /> */}
+              <CardContent>
+                <p>{record.description}</p>
+                {record.thumbnail && (
                   <img
-                    className='w-64 h-64 text-gray-400'
-                    src={'http://127.0.0.1:54321/storage/v1/object/public/payload/' + record.thumbnail}
+                    className="w-full h-auto mt-2"
+                    src={supabase.storage.from('payload').getPublicUrl(record.thumbnail).data.publicUrl}
+                    alt={record.title}
                   />
-                </div>
-                <p className="text-sm text-gray-600 mb-2">{record.description}</p>
-                <div className="flex items-center text-sm text-gray-500 mb-1">
-                  <PackageIcon className="w-4 h-4 mr-1" />
-                  <span>{record.units}</span>
-                </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <FileIcon className="w-4 h-4 mr-1" />
-                  <span>{record.mainFile}</span>
+                )}
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <p>Collection: {record.collections?.name || 'N/A'}</p>
+                  <p>Parent Payload: {record.parentpayloads?.title || 'N/A'}</p>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" size="sm">
-                  <InfoIcon className="w-4 h-4 mr-1" />
-                  Details
+                <Button variant="outline">
+                  <InfoIcon className="mr-2 h-4 w-4" /> Details
                 </Button>
-                <div className="text-sm text-gray-500">
-                  ID: {record.id}
-                </div>
+                <Button variant="default">
+                  <PackageIcon className="mr-2 h-4 w-4" /> Acquire
+                </Button>
               </CardFooter>
             </Card>
           ))}

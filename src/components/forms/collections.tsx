@@ -50,7 +50,7 @@ export default function CreateNewCollection() {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         let coverImageUrl = '';
-
+    
         const generateUniqueFileName = (fileName: string) => {
             const timestamp = Date.now();
             const extension = fileName.split('.').pop();
@@ -63,7 +63,19 @@ export default function CreateNewCollection() {
             const { data: mediaData, error: mediaError } = await supabase.storage
                 .from("payload")
                 .upload(`moonMission/collection/${formData.name}/${uniqueMediaName}`, formData.cover_image);
-        };        
+    
+            if (mediaError) {
+                console.error("Error uploading cover image: ", mediaError.message);
+                alert("Error uploading cover image: " + mediaError.message);
+                return;
+            }
+
+            const { data: urlData } = supabase.storage
+                .from("payload")
+                .getPublicUrl(`moonMission/collection/${formData.name}/${uniqueMediaName}`);
+            
+            coverImageUrl = urlData?.publicUrl || '';
+        }
 
         const { error: insertError } = await supabase
             .from("collections")
@@ -73,16 +85,16 @@ export default function CreateNewCollection() {
                 cover_image: coverImageUrl,
                 creator: session?.user.id,
             });
-
+    
         if (insertError) {
             console.error("Error inserting collection: ", insertError.message);
             alert("Error inserting collection: " + insertError.message);
             return;
-        };
-
+        }
+    
         alert("Collection created successfully!");
     };
-
+    
     // UI elements
     const [step, setStep] = useState(0);
     const formSteps = [
@@ -137,7 +149,7 @@ export default function CreateNewCollection() {
                                 >
                                     Next <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
-                            )};
+                            )}
                         </CardFooter>
                     </form>
                 </Card>

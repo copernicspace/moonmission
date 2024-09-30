@@ -1,4 +1,5 @@
 export interface ChildRecord {
+  thumbnail: string;
   id: number;
   title: string;
   description: string;
