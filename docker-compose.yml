@@ -1,27 +1,20 @@
 version: '3.8'
 
 services:
-  app:
+  next:
+    labels:
+      shipyard.route: '/'
     build:
       context: .
     ports:
       - '3000:3000'
-    environment:
-      - NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-    # depends_on:
-    #   - supabase
-
-  # supabase:
-  #   image: supabase/postgres:latest
-  #   environment:
-  #     - POSTGRES_PASSWORD=password
-  #   ports:
-  #     - '54321:5432'
-
-  # supabase-api:
-  #   image: supabase/gotrue:latest
-  #   environment:
-  #     - API_URL=http://localhost:54321
-  #   depends_on:
-  #     - supabase
+    develop:
+      watch:
+        - action: sync
+          path: ./public
+          target: /app/public
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: package.json

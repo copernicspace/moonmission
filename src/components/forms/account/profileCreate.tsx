@@ -26,18 +26,18 @@ export default function ProfileCreateForm() {
 
             if (error && status !== 406) {
                 throw error;
-            }
+            };
 
             if (data) {
                 setFullname(data.full_name);
                 setUsername(data.username);
                 setAvatarUrl(data.avatar_url);
-            }
+            };
         } catch (error) {
             // alert("Error fetching profile");
         } finally {
             setLoading(false);
-        }
+        };
     }, [session, supabase]);
 
     useEffect(() => {
@@ -76,7 +76,6 @@ export default function ProfileCreateForm() {
         else if (field === 'avatar_url') setAvatarUrl(value);
     };
 
-    // Multi-step form
     const formSteps = [
         {
             title: "Full Name",

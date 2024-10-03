@@ -85,7 +85,7 @@ export default function LandingPageComponent() {
                 <section className="py-16 sm:py-24 bg-gradient-to-b from-white to-gray-50">
                     <div className="max-w-4xl mx-auto text-center space-y-8">
                         <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                            Experience Zero Fees
+                            Experience Zero GO FUCK YOURSELF Fees
                         </h2>
                         <p className="text-xl text-gray-600">
                             Test our platform by creating, selling and purchasing multiple assets without paying commissions. Use Mock tokens for transaction fees.

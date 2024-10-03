@@ -1,16 +1,15 @@
-# Use Bun as the base image
-FROM jarredsumner/bun:edge
+FROM oven/bun
 
 WORKDIR /app
 
-# Copy over your app code and package files
-COPY . .
+# Copy package.json and package-lock.json (if exists)
+COPY package*.json ./
 
-# Install dependencies using Bun
+# Install dependencies
 RUN bun install
 
-# Run the build process using Bun
-RUN bun build
+# Copy the rest of the application
+COPY . .
 
-# Start the application using Bun
-CMD ["bun", "start"]
+# Start app in development mode
+CMD ["bun", "run", "dev"]
