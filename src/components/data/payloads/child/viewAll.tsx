@@ -147,7 +147,7 @@ export function FilterableGalleryGridComponent() {
                   <InfoIcon className="mr-2 h-4 w-4" /> Details
                 </Button>
                 <Button variant="default">
-                  <PackageIcon className="mr-2 h-4 w-4" /> Acquire
+                  <PackageIcon className="mr-2 h-4 w-4" /> List
                 </Button>
               </CardFooter>
             </Card>

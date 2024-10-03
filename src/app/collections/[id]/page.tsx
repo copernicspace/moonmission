@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import { useSession, useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Loader } from "lucide-react";
 
 interface CollectionRecord {
   id: number;
-  name: string;
+  name: string; 
   description: string;
   cover_image: string; 
   creator: string; 
@@ -27,6 +27,7 @@ export default function EditCollection({ params }: EditCollectionProps) {
   const { id } = params;
   const router = useRouter();
   const supabase = useSupabaseClient();
+  const session = useSession();
   const user = useUser();
 
   const [record, setRecord] = useState<CollectionRecord | null>(null);
