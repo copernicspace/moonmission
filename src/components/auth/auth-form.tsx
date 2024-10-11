@@ -10,7 +10,7 @@ import { Flexbox } from "react-layout-kit";
 
 interface AuthPageProps {
   children: ReactNode;
-}
+};
 
 const useStyles = createStyles(({ css }) => {
   return {
@@ -100,11 +100,11 @@ function SupabaseAuthWrapper({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
-}
+};
 
 function AuthPage({ children }: AuthPageProps) {
   return <SupabaseAuthWrapper>{children}</SupabaseAuthWrapper>;
-}
+};
 
 export default function LoginPage() {
   const supabase = useSupabaseClient();

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Mail } from "lucide-react";
+import { Upload, Mail, LogOut } from "lucide-react";
 import ProfileCreateForm from "../forms/account/profileCreate";
 import Image from "next/image";
 import CreateAssetButton from "../data/payloads/createButton";
@@ -20,7 +20,7 @@ export default function AccountDashboard() {
 
     const [fullName, setFullname] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
-
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     const getProfile = useCallback(async () => {
@@ -34,151 +34,205 @@ export default function AccountDashboard() {
 
             if (error && status !== 406) {
                 throw error;
-            };
+            }
 
             if (data) {
                 setFullname(data.full_name);
                 setUsername(data.username);
-            };
+                setAvatarUrl(data.avatar_url);
+            }
         } catch (error) {
             console.log("Error fetching profile");
         } finally {
             setLoading(false);
-        };
+        }
     }, [session, supabase]);
 
     useEffect(() => {
-        getProfile();
+        if (session) {
+            getProfile();
+        }
     }, [session, getProfile]);
 
-    if (fullName === null || username === null) {
-        return (
-            <div className="flex flex-col min-h-screen bg-white">
-                <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8">
-                    <section className="py-16 sm:py-24">
-                        <div className="grid md:grid-cols-2 gap-12 items-center">
-                            <div className="space-y-6">
-                                <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
-                                    Copernic Spacemart
-                                </h1>
-                                <p className="text-xl text-gray-600">
-                                    Create and sell your own space assets and spaceibles NFTs
-                                </p>
-                                <Button
-                                    size="lg"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    Explore Spacemart
-                                </Button>
-                            </div>
-                            <div className="relative h-64 sm:h-80 md:h-96">
-                                <Image
-                                    src="/placeholder.svg?height=600&width=800"
-                                    alt="Spacemart"
-                                    layout="fill"
-                                    objectFit="cover"
-                                    className="rounded-lg shadow-lg"
-                                />
-                            </div>
-                        </div>
-                        <div className="container mx-auto px-4 py-8">
-                            <Card className="mb-8">
-                                <CardContent className="p-2">
-                                    <ProfileCreateForm />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </section>
-                </main>
-            </div>
-        );
+    if (loading) {
+        return <div>Loading profile...</div>;
     };
 
+    if (!fullName) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4" style={{
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23a0aec0' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='50' cy='50' r='3'/%3E%3C/g%3E%3C/svg%3E\")"
+            }}>
+                <section className="w-full max-w-4xl bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                    <ProfileCreateForm />
+                </section>
+        
+                <div className="container mx-auto px-4 py-8">
+                    <Card className="mb-8">
+                        <CardHeader>
+                            <CardTitle>Your Created Assets</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-between items-center mb-4">
+                                <Tabs value={activeAssetsTab} onValueChange={setActiveAssetsTab}>
+                                    <TabsList>
+                                        <TabsTrigger value="assets">Assets</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <Select>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Newest</SelectItem>
+                                        <SelectItem value="oldest">Oldest</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="text-center py-12 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500 mb-4">You haven't created any assets yet</p>
+                                <Button>Create a child payload</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+        
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Available to create</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-between items-center mb-4">
+                                <Tabs value={activeOffersTab} onValueChange={setActiveOffersTab}>
+                                    <TabsList>
+                                        <TabsTrigger value="assets">Assets</TabsTrigger>
+                                        <TabsTrigger value="licenses">Licenses</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <Select>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Newest</SelectItem>
+                                        <SelectItem value="oldest">Oldest</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="text-center py-12 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500 mb-4">You have no offers available</p>
+                                <CreateAssetButton />
+                                <CreateAssetButton />
+                                {/* <Upload className="mr-2 h-4 w-4" /> */}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <Card className="mb-8">
-                <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div className="flex items-center mb-4 md:mb-0">
-                            <div className="mr-4">
-                                <Upload className="w-6 h-6 text-gray-400" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-semibold">
-                                    {fullName}
-                                </h2>
-                                <p className="text-sm text-gray-500">{username}</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                            <Button variant="outline" className="mb-2 sm:mb-8 sm:mr-2">
-                                Edit Profile
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4" style={{
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23a0aec0' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='50' cy='50' r='3'/%3E%3C/g%3E%3C/svg%3E\")"
+        }}>
+            {/* Top section with profile and navigation */}
+            <section className="w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+                <div className="p-6 flex flex-col md:flex-row items-center gap-6">
+                    <img
+                        src={avatarUrl || "/placeholder.svg?height=100&width=100"}
+                        alt={`${fullName}'s profile picture`}
+                        className="w-24 h-24 rounded-full border-4 border-blue-500 shadow-md"
+                    />
+                    <div className="flex-grow text-center md:text-left">
+                        <h2 className="text-2xl font-bold text-gray-800">{fullName}</h2>
+                        <p className="text-blue-600">@{username}</p>
+                    </div>
+                    <div className="flex flex-wrap justify-center md:justify-end gap-3">
+                        {["Dashboard", "Messages", "Settings"].map((text) => (
+                            <Button
+                                key={text}
+                                className="bg-gradient-to-b from-white to-gray-100 text-blue-600 border border-gray-300 shadow-sm hover:from-gray-100 hover:to-gray-200 transition-all duration-200"
+                            >
+                                {text}
                             </Button>
-                            <div className="flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                                <Mail className="w-4 h-4 mr-2" />
-                                <span>E-mail is verified</span>
+                        ))}
+                    </div>
+                </div>
+                <div className="bg-gray-50 p-4 flex justify-between items-center border-t border-gray-200">
+                    <Button
+                        variant="destructive"
+                        className="bg-gradient-to-b from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md transition-all duration-200"
+                    >
+                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                    </Button>
+                </div>
+            </section>
+    
+            {/* Main content section */}
+            <div className="container mx-auto px-4 py-8">
+                <Card className="mb-8">
+                    <CardHeader>
+                        <CardTitle>Your Created Assets</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex justify-between items-center mb-4">
+                            <Tabs value={activeAssetsTab} onValueChange={setActiveAssetsTab}>
+                                <TabsList>
+                                    <TabsTrigger value="assets">Assets</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            <Select>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Sort by" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest</SelectItem>
+                                    <SelectItem value="oldest">Oldest</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="text-center py-12 bg-gray-50 rounded-lg">
+                            <p className="text-gray-500 mb-4">You haven't created any assets yet</p>
+                            <Button>Create a child payload</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+    
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Available to create</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex justify-between items-center mb-4">
+                            <Tabs value={activeOffersTab} onValueChange={setActiveOffersTab}>
+                                <TabsList>
+                                    <TabsTrigger value="assets">Assets</TabsTrigger>
+                                    <TabsTrigger value="licenses">Licenses</TabsTrigger>
+                                    <TabsTrigger value="licenses">Spacibles</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            <Select>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Sort by" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest</SelectItem>
+                                    <SelectItem value="oldest">Oldest</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="text-center py-12 flex flex-row bg-gray-50 rounded-lg">
+                            <div className="px-2">
+                                <CreateAssetButton />
+                            </div>
+                            <div className="px-2">
+                                <CreateAssetButton />
                             </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-            <Card className="mb-8">
-                <CardHeader>
-                    <CardTitle>Your Created Assets</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-between items-center mb-4">
-                        <Tabs value={activeAssetsTab} onValueChange={setActiveAssetsTab}>
-                            <TabsList>
-                                <TabsTrigger value="assets">Assets</TabsTrigger>
-                                <TabsTrigger value="licenses">Licenses</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <Select>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="newest">Newest</SelectItem>
-                                <SelectItem value="oldest">Oldest</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <p className="text-gray-500 mb-4">
-                            You haven't created any assets yt
-                        </p>
-                        <Button>Create a child payload</Button>
-                    </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Available to create</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-between items-center mb-4">
-                        <Tabs value={activeOffersTab} onValueChange={setActiveOffersTab}>
-                            <TabsList>
-                                <TabsTrigger value="assets">Assets</TabsTrigger>
-                                <TabsTrigger value="licenses">Licenses</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <Select>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="newest">Newest</SelectItem>
-                                <SelectItem value="oldest">Oldest</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <CreateAssetButton />
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
+    
 };

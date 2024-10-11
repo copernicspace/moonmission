@@ -2,153 +2,277 @@
 
 import React, { useState } from "react";
 import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
-import { Button, Input, Textarea, Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { ArrowRight } from "lucide-react";
 
-export default function CreateChildAssetForm() {
-    const supabase = useSupabaseClient();
-    const session = useSession();
+export function CreateChildAssetFormComponent() {
+  const supabase = useSupabaseClient()
+  const session = useSession()
 
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        mainMedia: null as File | null,
-        mainFile: null as File | null,
-        units: '',
-        collection_id: null as number | null,
-        parent_payload_id: null as number | null,
-    });
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    mainMedia: null as File | null,
+    mainFile: null as File | null,
+    units: "",
+    collection_id: null as number | null,
+    parent_payload_id: null as number | null,
+  })
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof typeof formData) => {
-        const { value, type, files } = e.target;
-        if (type === 'file') {
-            setFormData(prevData => ({
-                ...prevData,
-                [field]: files ? files[0] : null,
-            }));
-        } else {
-            setFormData(prevData => ({
-                ...prevData,
-                [field]: value,
-            }));
-        };
-    };
+  const [isCreatingNewCollection, setIsCreatingNewCollection] = useState(false)
+  const [newCollectionTitle, setNewCollectionTitle] = useState("")
 
-    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>, field: keyof typeof formData) => {
-        setFormData(prevData => ({
-            ...prevData,
-            [field]: e.target.value
-        }));
-    };
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    field: keyof typeof formData
+  ) => {
+    const { value, type, files } = e.target as HTMLInputElement
+    if (type === "file") {
+      setFormData((prevData) => ({
+        ...prevData,
+        [field]: files ? files[0] : null,
+      }))
+    } else {
+      setFormData((prevData) => ({
+        ...prevData,
+        [field]: value,
+      }))
+    }
+  }
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        let thumbnailUrl = '';
-        let mainFileUrl = '';
+  const handleCollectionCreated = (newCollectionId: number) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      collection_id: newCollectionId,
+    }))
+    setIsCreatingNewCollection(false)
+  }
 
-        const generateUniqueFileName = (fileName: string) => {
-            const timestamp = Date.now();
-            const extension = fileName.split('.').pop();
-            const nameWithoutExtension = fileName.replace(`.${extension}`, '');
-            return `${nameWithoutExtension}_${timestamp}.${extension}`;
-        };
+  const createNewCollection = async () => {
+    if (!newCollectionTitle) return
 
-        if (formData.mainMedia) {
-            const uniqueMediaName = generateUniqueFileName(formData.mainMedia.name);
-            const { data: mediaData, error: mediaError } = await supabase.storage
-                .from('payload')
-                .upload(`moonMission/child/${formData.title}/${uniqueMediaName}`, formData.mainMedia);
-            if (mediaError) {
-                console.error("Error uploading main media: ", mediaError.message);
-                alert("Error uploading main media: " + mediaError.message);
-                return;
-            };
-            thumbnailUrl = mediaData.path;
-        };
+    const { data, error } = await supabase.from("collections").insert({
+      title: newCollectionTitle,
+      user_id: session?.user?.id
+    }).select()
 
-        if (formData.mainFile) {
-            const uniqueFileName = generateUniqueFileName(formData.mainFile.name);
-            const { data: fileData, error: fileError } = await supabase.storage
-                .from('payload')
-                .upload(`moonMission/child/${formData.title}/${uniqueFileName}`, formData.mainFile);
-            if (fileError) {
-                console.error("Error uploading main file: ", fileError.message);
-                alert("Error uploading main file: " + fileError.message);
-                return;
-            };
-            mainFileUrl = fileData.path;
-        };
+    if (error) {
+      console.error("Error creating new collection: ", error.message)
+      alert("Failed to create collection: " + error.message)
+      return
+    }
 
-        const { error: insertError } = await supabase
-            .from("childassets")
-            .insert({
-                title: formData.title,
-                description: formData.description,
-                thumbnail: thumbnailUrl,
-                mainmedia: thumbnailUrl,  // Assuming main media refers to the same as thumbnail
-                mainfile: mainFileUrl,
-                units: formData.units,
-                collection_id: formData.collection_id,
-                parent_payload_id: formData.parent_payload_id,
-            });
+    if (data && data.length > 0) {
+      const newCollectionId = data[0].id
+      handleCollectionCreated(newCollectionId)
+    }
+  }
 
-        if (insertError) {
-            console.error("Error inserting child asset: ", insertError.message);
-            alert("Failed to create child asset: " + insertError.message);
-            return;
-        };
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    let thumbnailUrl = ""
+    let mainFileUrl = ""
 
-        alert("Child asset created successfully!");
-    };
+    const generateUniqueFileName = (fileName: string) => {
+      const timestamp = Date.now()
+      const extension = fileName.split(".").pop()
+      const nameWithoutExtension = fileName.replace(`.${extension}`, "")
+      return `${nameWithoutExtension}_${timestamp}.${extension}`
+    }
 
-    // UI elements
-    const [step, setStep] = useState(0);
-    const formSteps = [
-        { title: 'Title', component: <Input type="text" placeholder="Title" value={formData.title} onChange={(e) => handleChange(e, 'title')} required /> },
-        { title: 'Description', component: <Textarea placeholder="Description" value={formData.description} onChange={(e) => handleTextareaChange(e, 'description')} required /> },
-        { title: 'Main Media', component: <Input type="file" onChange={(e) => handleChange(e, 'mainMedia')} required /> },
-        { title: 'Units', component: <Input type="text" placeholder="Units" value={formData.units} onChange={(e) => handleChange(e, 'units')} required /> },
-        { title: 'Collection ID', component: <Input type="number" placeholder="Collection ID" value={formData.collection_id || ''} onChange={(e) => handleChange(e, 'collection_id')} /> },
-        { title: 'Parent Payload ID', component: <Input type="number" placeholder="Parent Payload ID" value={formData.parent_payload_id || ''} onChange={(e) => handleChange(e, 'parent_payload_id')} required /> },
-    ];
+    if (formData.mainMedia) {
+      const uniqueMediaName = generateUniqueFileName(formData.mainMedia.name)
+      const { data: mediaData, error: mediaError } = await supabase.storage
+        .from("payload")
+        .upload(
+          `moonMission/child/${formData.title}/${uniqueMediaName}`,
+          formData.mainMedia
+        )
+      if (mediaError) {
+        console.error("Error uploading main media: ", mediaError.message)
+        alert("Error uploading main media: " + mediaError.message)
+        return
+      }
+      thumbnailUrl = mediaData.path
+    }
 
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <Card className="w-full max-w-md">
-                <form onSubmit={handleSubmit}>
-                    <CardHeader>
-                        <CardTitle className="text-2xl font-bold text-center">
-                            Create Child Asset (for Moon Mission)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">{formSteps[step].title}</h3>
-                            {formSteps[step].component}
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setStep(prev => Math.max(0, prev - 1))}
-                            disabled={step === 0}
-                        >
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-                        </Button>
-                        {step === formSteps.length - 1 ? (
-                            <Button type="submit">Create Child Asset</Button>
-                        ) : (
-                            <Button
-                                type="button"
-                                onClick={() => setStep(prev => Math.min(formSteps.length - 1, prev + 1))}
-                            >
-                                Next <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        )}
-                    </CardFooter>
-                </form>
-            </Card>
-        </div>
-    );
+    if (formData.mainFile) {
+      const uniqueFileName = generateUniqueFileName(formData.mainFile.name)
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from("payload")
+        .upload(
+          `moonMission/child/${formData.title}/${uniqueFileName}`,
+          formData.mainFile
+        )
+      if (fileError) {
+        console.error("Error uploading main file: ", fileError.message)
+        alert("Error uploading main file: " + fileError.message)
+        return
+      }
+      mainFileUrl = fileData.path
+    }
+
+    const { error: insertError } = await supabase.from("childassets").insert({
+      title: formData.title,
+      description: formData.description,
+      thumbnail: thumbnailUrl,
+      mainmedia: thumbnailUrl,
+      mainfile: mainFileUrl,
+      units: formData.units,
+      collection_id: formData.collection_id,
+      parent_payload_id: formData.parent_payload_id,
+    })
+
+    if (insertError) {
+      console.error("Error inserting child asset: ", insertError.message)
+      alert("Failed to create child asset: " + insertError.message)
+      return
+    }
+
+    alert("Child asset created successfully!")
+  }
+
+  return (
+    <div className="flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
+      <Card className="w-full max-w-2xl shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-bold text-center">
+            Create Child Asset (for Moon Mission)
+          </CardTitle>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-6 p-6">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-lg font-semibold">
+                Title
+              </Label>
+              <Input
+                id="title"
+                type="text"
+                placeholder="Enter title"
+                value={formData.title}
+                onChange={(e) => handleChange(e, "title")}
+                required
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-lg font-semibold">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Enter description"
+                value={formData.description}
+                onChange={(e) => handleChange(e, "description")}
+                required
+                className="w-full min-h-[100px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mainMedia" className="text-lg font-semibold">
+                Main Media
+              </Label>
+              <Input
+                id="mainMedia"
+                type="file"
+                onChange={(e) => handleChange(e, "mainMedia")}
+                required
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mainFile" className="text-lg font-semibold">
+                Main File
+              </Label>
+              <Input
+                id="mainFile"
+                type="file"
+                onChange={(e) => handleChange(e, "mainFile")}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="units" className="text-lg font-semibold">
+                Units
+              </Label>
+              <Input
+                id="units"
+                type="text"
+                placeholder="Enter units"
+                value={formData.units}
+                onChange={(e) => handleChange(e, "units")}
+                required
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="collection_id" className="text-lg font-semibold">
+                Collection ID or Create New
+              </Label>
+              {!isCreatingNewCollection ? (
+                <div>
+                  <Input
+                    id="collection_id"
+                    type="number"
+                    placeholder="Enter Collection ID"
+                    value={formData.collection_id || ""}
+                    onChange={(e) => handleChange(e, "collection_id")}
+                    className="w-full"
+                  />
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={() => setIsCreatingNewCollection(true)}
+                  >
+                    Or create a new collection
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <Input
+                    type="text"
+                    placeholder="Enter New Collection Title"
+                    value={newCollectionTitle}
+                    onChange={(e) => setNewCollectionTitle(e.target.value)}
+                    className="w-full"
+                  />
+                  <Button onClick={createNewCollection} className="mt-2">
+                    Create Collection
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="parent_payload_id" className="text-lg font-semibold">
+                Parent Payload ID
+              </Label>
+              <Input
+                id="parent_payload_id"
+                type="number"
+                placeholder="Enter Parent Payload ID"
+                value={formData.parent_payload_id || ""}
+                onChange={(e) => handleChange(e, "parent_payload_id")}
+                required
+                className="w-full"
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="bg-gray-50 rounded-b-lg">
+            <Button
+              type="submit"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center"
+            >
+              Create Child Asset
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
+  );
 };
