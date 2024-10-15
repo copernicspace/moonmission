@@ -10,6 +10,8 @@ import { Upload, Mail, LogOut } from "lucide-react";
 import ProfileCreateForm from "../forms/account/profileCreate";
 import Image from "next/image";
 import CreateAssetButton from "../data/payloads/createButton";
+import { ParentPayloadsGridComponent } from "../data/payloads/parent/list";
+import { ChildAssetsGridComponent } from "../data/payloads/child/list";
 
 export default function AccountDashboard() {
     const supabase = useSupabaseClient();
@@ -92,6 +94,7 @@ export default function AccountDashboard() {
                             <div className="text-center py-12 bg-gray-50 rounded-lg">
                                 <p className="text-gray-500 mb-4">You haven't created any assets yet</p>
                                 <Button>Create a child payload</Button>
+                                <ChildAssetsGridComponent /> {/* Test - need to add profile foreign key */}
                             </div>
                         </CardContent>
                     </Card>
@@ -192,8 +195,9 @@ export default function AccountDashboard() {
                             </Select>
                         </div>
                         <div className="text-center py-12 bg-gray-50 rounded-lg">
-                            <p className="text-gray-500 mb-4">You haven't created any assets yet</p>
-                            <Button>Create a child payload</Button>
+                            {/* <p className="text-gray-500 mb-4">You haven't created any assets yet</p>
+                            <Button>Create a child payload</Button> */}
+                            <ChildAssetsGridComponent />
                         </div>
                     </CardContent>
                 </Card>
@@ -228,6 +232,32 @@ export default function AccountDashboard() {
                             <div className="px-2">
                                 <CreateAssetButton />
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="container mx-auto px-4 py-4">
+                <Card>
+                    <CardHeader>
+                        All your assets
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex text-center py-4 flex-row bg-gray-100 rounded-lg">
+                            <ChildAssetsGridComponent />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="container mx-auto px-4 py-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Upcoming missions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex text-center py-4 flex-row bg-gray-50 rounded-lg">
+                            <ParentPayloadsGridComponent />
                         </div>
                     </CardContent>
                 </Card>
