@@ -13,7 +13,7 @@ import CreateAssetButton from "../data/payloads/createButton";
 import { ParentPayloadsGridComponent } from "../data/payloads/parent/list";
 import { ChildAssetsGridComponent } from "../data/payloads/child/list";
 
-export default function AccountDashboard() {
+export default function AccountDashboard() { 
     const supabase = useSupabaseClient();
     const session = useSession();
 
