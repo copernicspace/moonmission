@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
 
 export function CreateChildAssetFormComponent() {
-  const supabase = useSupabaseClient()
-  const session = useSession()
+  const supabase = useSupabaseClient();
+  const session = useSession();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -21,99 +21,112 @@ export function CreateChildAssetFormComponent() {
     units: "",
     collection_id: null as number | null,
     parent_payload_id: null as number | null,
-  })
+  });
 
-  const [isCreatingNewCollection, setIsCreatingNewCollection] = useState(false)
-  const [newCollectionTitle, setNewCollectionTitle] = useState("")
+  const [isCreatingNewCollection, setIsCreatingNewCollection] = useState(false);
+  const [newCollectionTitle, setNewCollectionTitle] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     field: keyof typeof formData
   ) => {
-    const { value, type, files } = e.target as HTMLInputElement
+    const { value, type, files } = e.target as HTMLInputElement;
     if (type === "file") {
+      const file = files ? files[0] : null;
       setFormData((prevData) => ({
         ...prevData,
-        [field]: files ? files[0] : null,
-      }))
+        [field]: file,
+      }));
+      console.log(`${field} updated with file: `, file?.name);
     } else {
+      // Convert empty strings to null for collection_id and parent_payload_id
+      const newValue = value === "" && (field === "collection_id" || field === "parent_payload_id") 
+        ? null 
+        : value;
       setFormData((prevData) => ({
         ...prevData,
-        [field]: value,
-      }))
+        [field]: newValue,
+      }));
+      console.log(`${field} updated with value: `, newValue);
     }
-  }
+  };
+  
 
   const handleCollectionCreated = (newCollectionId: number) => {
     setFormData((prevData) => ({
       ...prevData,
       collection_id: newCollectionId,
-    }))
-    setIsCreatingNewCollection(false)
-  }
+    }));
+    setIsCreatingNewCollection(false);
+    console.log("New collection created with ID: ", newCollectionId);
+  };
 
   const createNewCollection = async () => {
-    if (!newCollectionTitle) return
+    if (!newCollectionTitle) return;
 
     const { data, error } = await supabase.from("collections").insert({
       title: newCollectionTitle,
-      user_id: session?.user?.id
-    }).select()
+      user_id: session?.user?.id,
+    }).select();
 
     if (error) {
-      console.error("Error creating new collection: ", error.message)
-      alert("Failed to create collection: " + error.message)
-      return
+      console.error("Error creating new collection: ", error.message);
+      alert("Failed to create collection: " + error.message);
+      return;
     }
 
     if (data && data.length > 0) {
-      const newCollectionId = data[0].id
-      handleCollectionCreated(newCollectionId)
+      const newCollectionId = data[0].id;
+      handleCollectionCreated(newCollectionId);
     }
-  }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    let thumbnailUrl = ""
-    let mainFileUrl = ""
+    event.preventDefault();
+    console.log("Submit button pressed, form data: ", formData);
+
+    let thumbnailUrl = "";
+    let mainFileUrl = "";
 
     const generateUniqueFileName = (fileName: string) => {
-      const timestamp = Date.now()
-      const extension = fileName.split(".").pop()
-      const nameWithoutExtension = fileName.replace(`.${extension}`, "")
-      return `${nameWithoutExtension}_${timestamp}.${extension}`
-    }
+      const timestamp = Date.now();
+      const extension = fileName.split(".").pop();
+      const nameWithoutExtension = fileName.replace(`.${extension}`, "");
+      return `${nameWithoutExtension}_${timestamp}.${extension}`;
+    };
 
     if (formData.mainMedia) {
-      const uniqueMediaName = generateUniqueFileName(formData.mainMedia.name)
+      const uniqueMediaName = generateUniqueFileName(formData.mainMedia.name);
       const { data: mediaData, error: mediaError } = await supabase.storage
         .from("payload")
         .upload(
           `moonMission/child/${formData.title}/${uniqueMediaName}`,
           formData.mainMedia
-        )
+        );
       if (mediaError) {
-        console.error("Error uploading main media: ", mediaError.message)
-        alert("Error uploading main media: " + mediaError.message)
-        return
+        console.error("Error uploading main media: ", mediaError.message);
+        alert("Error uploading main media: " + mediaError.message);
+        return;
       }
-      thumbnailUrl = mediaData.path
+      thumbnailUrl = mediaData.path;
+      console.log("Main media uploaded, path: ", thumbnailUrl);
     }
 
     if (formData.mainFile) {
-      const uniqueFileName = generateUniqueFileName(formData.mainFile.name)
+      const uniqueFileName = generateUniqueFileName(formData.mainFile.name);
       const { data: fileData, error: fileError } = await supabase.storage
         .from("payload")
         .upload(
           `moonMission/child/${formData.title}/${uniqueFileName}`,
           formData.mainFile
-        )
+        );
       if (fileError) {
-        console.error("Error uploading main file: ", fileError.message)
-        alert("Error uploading main file: " + fileError.message)
-        return
+        console.error("Error uploading main file: ", fileError.message);
+        alert("Error uploading main file: " + fileError.message);
+        return;
       }
-      mainFileUrl = fileData.path
+      mainFileUrl = fileData.path;
+      console.log("Main file uploaded, path: ", mainFileUrl);
     }
 
     const { error: insertError } = await supabase.from("childassets").insert({
@@ -125,16 +138,17 @@ export function CreateChildAssetFormComponent() {
       units: formData.units,
       collection_id: formData.collection_id,
       parent_payload_id: formData.parent_payload_id,
-    })
+    });
 
     if (insertError) {
-      console.error("Error inserting child asset: ", insertError.message)
-      alert("Failed to create child asset: " + insertError.message)
-      return
+      console.error("Error inserting child asset: ", insertError.message);
+      alert("Failed to create child asset: " + insertError.message);
+      return;
     }
 
-    alert("Child asset created successfully!")
-  }
+    console.log("Child asset created successfully!");
+    alert("Child asset created successfully!");
+  };
 
   return (
     <div className="flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">

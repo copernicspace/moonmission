@@ -22,7 +22,7 @@ const useStyles = createStyles(({ css }) => {
     `,
     title: css`
       margin-block-end: 0;
-      font-size: min(56px, 7vw);
+      font-size: min(56px, 7vw); 
       font-weight: 800;
       line-height: 1;
       text-align: center;
