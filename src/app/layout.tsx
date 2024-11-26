@@ -5,7 +5,7 @@ import "./globals.css";
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
 import { createPagesBrowserClient } from "@supabase/auth-helpers-nextjs";
 import { useState } from "react";
-import { NavbarComponent } from "@/components/navbar";
+import Navbar from "@/components/navbar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionContextProvider supabaseClient={supabaseClient} initialSession={null}>
-          <NavbarComponent />
+          <Navbar />
           {children}
         </SessionContextProvider>
       </body>

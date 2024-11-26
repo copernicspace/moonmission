@@ -6,7 +6,7 @@ import React from "react";
 
 export default function ProfilePage() {
     return (
-        <div className="py-2">
+        <div className="py-2"> 
             <DropdownMenu />
             <ProfileCreateForm />
         </div>

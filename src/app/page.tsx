@@ -8,16 +8,7 @@ import LandingPageComponent from "@/components/forms/pages/landing";
 import AccountDashboard from "@/components/account/dashboard";
 
 export default function Home() {
-  // const supabase = useSupabaseClient();
   const session = useSession();
-
-  // if (!session) {
-  //   return (
-  //     <div className="flex">
-  //       <LoginPage />
-  //     </div>
-  //   );
-  // }; 
 
   if (session) {
     return (
