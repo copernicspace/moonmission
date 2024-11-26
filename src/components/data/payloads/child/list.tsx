@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type ChildAsset = {
-  title: string 
+  title: string  
   thumbnail: string
   mainmedia: string
   description: string
