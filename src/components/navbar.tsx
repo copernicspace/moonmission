@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Menu, User, Grid, PlusSquare, Settings, LogOut } from 'lucide-react'
+import { SignOutButton } from './auth/buttons'
 
 export function NavbarComponent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -98,8 +99,7 @@ function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <SignOutButton />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

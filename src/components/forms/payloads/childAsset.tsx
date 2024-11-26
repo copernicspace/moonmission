@@ -125,7 +125,7 @@ export function CreateChildAssetFormComponent() {
         alert("Error uploading main file: " + fileError.message);
         return;
       }
-      mainFileUrl = fileData.path;
+      mainFileUrl = fileData.path; 
       console.log("Main file uploaded, path: ", mainFileUrl);
     }
 
