@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Filter, SortAsc } from "lucide-react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { CollectionCard } from "./collection-card"; // Assuming CollectionCard exists for displaying collections
 
 type ChildAsset = {
   id: number;
@@ -21,7 +22,9 @@ type ChildAsset = {
 
 export function AssetGrid() {
   const [assets, setAssets] = useState<ChildAsset[]>([]);
+  const [collections, setCollections] = useState<any[]>([]); // Replace `any[]` with proper type for collections
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"assets" | "collections">("assets");
   const supabase = useSupabaseClient();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -41,7 +44,20 @@ export function AssetGrid() {
       setLoading(false);
     }
 
+    async function fetchCollections() {
+      const { data, error } = await supabase
+        .from("collections")
+        .select("*");
+
+      if (error) {
+        console.error("Error fetching collections:", error);
+      } else {
+        setCollections(data || []);
+      }
+    }
+
     fetchAssets();
+    fetchCollections();
   }, [supabase]);
 
   if (loading) {
@@ -67,63 +83,92 @@ export function AssetGrid() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Tab Navigation */}
       <div className="flex gap-4 border-b mb-6">
-        <button className="px-4 py-2 font-medium text-sm border-b-2 border-blue-600 text-blue-600">
+        <button
+          onClick={() => setActiveTab("assets")}
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === "assets"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
           Assets
         </button>
-        <button className="px-4 py-2 font-medium text-sm text-gray-500 hover:text-gray-700">
+        <button
+          onClick={() => setActiveTab("collections")}
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === "collections"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
           Collections
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1">
-          <Input type="search" placeholder="Search" className="w-full" />
-        </div>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="w-4 h-4" />
-          Filters
-        </Button>
-        <Button variant="outline" className="flex items-center gap-2">
-          <SortAsc className="w-4 h-4" />
-          Sort
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-        {assets.map((asset) => {
-          const imageUrl = `${supabaseUrl}/storage/v1/object/public/payload/${asset.thumbnail}`;
-          return (
-            <div
-              key={asset.id}
-              className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow"
-            >
-              <div className="relative aspect-square">
-                <Image
-                  src={imageUrl}
-                  alt={asset.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <div className="text-sm text-gray-500 mb-2">
-                  {/* Based on Parent Payload:{" "} */}
-                  Based on: <span className="text-blue-500">Moon Mission</span>
-                  {/* <span className="text-blue-600">{asset.parent_payload_id}</span> */}
-                </div>
-                <h3 className="font-medium">{asset.title}</h3>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {asset.description}
-                </p>
-                <div className="text-xs text-gray-400 mt-2">
-                  Units: {asset.units}
-                </div>
-              </div>
+      {/* Tab Content */}
+      {activeTab === "assets" ? (
+        <div>
+          {/* Search and Filter */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex-1">
+              <Input type="search" placeholder="Search" className="w-full" />
             </div>
-          );
-        })}
-      </div>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filters
+            </Button>
+            <Button variant="outline" className="flex items-center gap-2">
+              <SortAsc className="w-4 h-4" />
+              Sort
+            </Button>
+          </div>
+
+          {/* Asset Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {assets.map((asset) => {
+              const imageUrl = `${supabaseUrl}/storage/v1/object/public/payload/${asset.thumbnail}`;
+              return (
+                <div
+                  key={asset.id}
+                  className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow"
+                >
+                  <div className="relative aspect-square">
+                    <Image
+                      src={imageUrl}
+                      alt={asset.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <div className="text-sm text-gray-500 mb-2">
+                      Based on: <span className="text-blue-500">Moon Mission</span>
+                    </div>
+                    <h3 className="font-medium">{asset.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      {asset.description}
+                    </p>
+                    <div className="text-xs text-gray-400 mt-2">
+                      Units: {asset.units}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div>
+          {/* Collection Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {collections.map((collection) => (
+              <CollectionCard key={collection.id} collection={collection} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

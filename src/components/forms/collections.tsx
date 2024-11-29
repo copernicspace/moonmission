@@ -13,6 +13,13 @@ interface CreateNewCollectionProps {
     onCollectionCreated?: (newCollectionId: number) => void;
 };
 
+const generateUniqueFileName = (fileName: string): string => {
+  const timestamp = Date.now();
+  const extension = fileName.split(".").pop() || "";
+  const nameWithoutExtension = fileName.replace(`.${extension}`, "");
+  return `${nameWithoutExtension}_${timestamp}.${extension}`;
+};
+
 const CreateNewCollectionComponent: React.FC<CreateNewCollectionProps> = ({ onCollectionCreated }) => {
   const supabase = useSupabaseClient()
   const session = useSession()
@@ -42,53 +49,69 @@ const CreateNewCollectionComponent: React.FC<CreateNewCollectionProps> = ({ onCo
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    let coverImageUrl = ""
-
-    const generateUniqueFileName = (fileName: string) => {
-      const timestamp = Date.now()
-      const extension = fileName.split(".").pop()
-      const nameWithoutExtension = fileName.replace(`.${extension}`, "")
-      return `${nameWithoutExtension}_${timestamp}.${extension}`
+    event.preventDefault();
+  
+    if (!session?.user?.id) {
+      alert("You must be logged in to create a collection.");
+      return;
     }
-
+  
+    let coverImageUrl = "";
+  
     if (formData.cover_image) {
-      const uniqueMediaName = generateUniqueFileName(formData.cover_image.name)
+      const uniqueMediaName = generateUniqueFileName(formData.cover_image.name);
       const { data: mediaData, error: mediaError } = await supabase.storage
         .from("payload")
         .upload(
           `moonMission/collection/${formData.name}/${uniqueMediaName}`,
           formData.cover_image
-        )
-
+        );
+  
       if (mediaError) {
-        console.error("Error uploading cover image: ", mediaError.message)
-        alert("Error uploading cover image: " + mediaError.message)
-        return
+        console.error("Error uploading cover image: ", mediaError.message);
+        alert("Error uploading cover image: " + mediaError.message);
+        return;
       }
-
+  
       const { data: urlData } = supabase.storage
         .from("payload")
-        .getPublicUrl(`moonMission/collection/${formData.name}/${uniqueMediaName}`)
-
-      coverImageUrl = urlData?.publicUrl || ""
+        .getPublicUrl(`moonMission/collection/${formData.name}/${uniqueMediaName}`);
+  
+      coverImageUrl = urlData?.publicUrl || "";
     }
-
-    const { error: insertError } = await supabase.from("collections").insert({
-      name: formData.name,
-      description: formData.description,
+  
+    if (!coverImageUrl) {
+      alert("Cover image upload failed. Please try again.");
+      return;
+    }
+  
+    const collectionData = {
+      name: formData.name.trim(),
+      description: formData.description.trim(),
       cover_image: coverImageUrl,
-      creator: session?.user.id,
-    })
-
+      creator: session.user.id,
+    };
+  
+    console.log("Payload to be inserted:", collectionData);
+  
+    const { data: insertedData, error: insertError } = await supabase
+      .from("collections")
+      .insert(collectionData)
+      .select(); // Fetch the inserted data.
+  
     if (insertError) {
-      console.error("Error inserting collection: ", insertError.message)
-      alert("Error inserting collection: " + insertError.message)
-      return
+      console.error("Error inserting collection: ", insertError.message);
+      alert("Error inserting collection: " + insertError.message);
+      return;
     }
-
-    alert("Collection created successfully!")
-  }
+  
+    alert("Collection created successfully!");
+    
+    if (insertedData && insertedData.length > 0 && onCollectionCreated) {
+      onCollectionCreated(insertedData[0].id);
+    }
+  };
+  
 
   return (
     <div className="flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100 p-4">
