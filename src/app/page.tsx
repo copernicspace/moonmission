@@ -6,13 +6,14 @@ import LoginPage from "../components/auth/auth-form";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import LandingPageComponent from "@/components/forms/pages/landing";
 import AccountDashboard from "@/components/account/dashboard";
+import ProfilePage from "./account/page";
 
 export default function Home() {
   const session = useSession();
 
   if (session) {
     return (
-      <AccountDashboard />
+      <ProfilePage />
     );
   };
 
