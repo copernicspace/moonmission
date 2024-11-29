@@ -1,14 +1,18 @@
 -- Create a table for public profiles
-create table profiles (
-  id uuid references auth.users not null primary key,
-  updated_at timestamp with time zone,
-  username text unique,
-  full_name text, 
-  avatar_url text,
-  website text,
-
-  constraint username_length check (char_length(username) >= 3)
-);
+create table
+  public.profiles (
+    id uuid not null,
+    updated_at timestamp with time zone null,
+    username text null,
+    full_name text null,
+    avatar_url text null,
+    wallet text null,
+    allocation bigint null,
+    constraint profiles_pkey primary key (id),
+    constraint profiles_username_key unique (username),
+    constraint profiles_id_fkey foreign key (id) references auth.users (id),
+    constraint username_length check ((char_length(username) >= 3))
+  ) tablespace pg_default;
 
 alter table profiles
   enable row level security;
