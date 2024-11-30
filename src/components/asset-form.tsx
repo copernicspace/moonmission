@@ -1,184 +1,212 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { Plus, Upload } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RichTextEditor } from "./rich-text-editor"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Plus, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "./rich-text-editor";
+import { Badge } from "@/components/ui/badge";
+import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
 
 interface AssetFormProps {
-  initialData?: any
-  readOnly?: boolean
+  initialData?: any;
+  readOnly?: boolean;
 }
 
 export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
-  const router = useRouter()
-  const [mainImage, setMainImage] = useState<string>("/placeholder.svg")
-  const [additionalImages, setAdditionalImages] = useState<string[]>([])
-  const [description, setDescription] = useState("")
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Space asset"])
+  const router = useRouter();
+  const supabase = useSupabaseClient();
+  const session = useSession();
 
-  const types = ["Space asset", "Satellite", "Imagery"]
+  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Space asset"]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const types = ["Space asset", "Satellite", "Imagery"];
+
+  const handleImageUpload = async (file: File, folder: string) => {
+    const uniqueFileName = `${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from("payload")
+      .upload(`${folder}/${uniqueFileName}`, file);
+
+    if (error) {
+      console.error("Image upload failed:", error.message);
+      return null;
+    }
+
+    return data?.path || null;
+  };
 
   const handleSave = async () => {
-    // Handle form submission
-    router.push("/assets/view/1") // Navigate to view mode
-  }
+    if (!session?.user) {
+      alert("You must be logged in to create an asset.");
+      return;
+    }
 
-  const handleEdit = () => {
-    router.push("/assets/edit/1") // Navigate to edit mode
-  }
+    setIsSaving(true);
+
+    try {
+      let mainImagePath = null;
+      const additionalImagePaths: string[] = [];
+
+      if (mainImage) {
+        mainImagePath = await handleImageUpload(mainImage, "main");
+        if (!mainImagePath) throw new Error("Main image upload failed");
+      }
+
+      for (const image of additionalImages) {
+        const path = await handleImageUpload(image, "additional");
+        if (path) {
+          additionalImagePaths.push(path);
+        }
+      }
+
+      const { error } = await supabase.from("assets").insert({
+        title,
+        description,
+        type: selectedTypes.join(", "),
+        main_image: mainImagePath,
+        author: session?.user.id,
+        additional_images: additionalImagePaths,
+        user_id: session.user.id,
+      });
+
+      if (error) {
+        console.error("Asset creation failed:", error.message);
+        alert("Failed to create asset: " + error.message);
+        return;
+      }
+
+      alert("Asset created successfully!");
+      router.push("/assets"); // Navigate to asset list or view page
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while saving the asset.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isMain = false) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      if (isMain) {
+        setMainImage(files[0]);
+      } else {
+        setAdditionalImages((prev) => [...prev, ...Array.from(files)]);
+      }
+    }
+  };
+
+  const toggleType = (type: string) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Create an Asset</h1>
-          <p className="text-muted-foreground">
-            Once your item is minted you will not be able to change any of its info
-          </p>
+          <p className="text-muted-foreground">Fill out the form to create a new asset.</p>
         </div>
-        {readOnly && (
-          <Button onClick={handleEdit} variant="outline">
-            Edit
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter asset title"
+            disabled={readOnly}
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <RichTextEditor
+  value={description}
+  onChange={(value) => setDescription(value)}
+  readOnly={readOnly}
+/>
+        </div>
+
+        <div>
+          <Label htmlFor="mainImage">Main Image</Label>
+          <Input
+            id="mainImage"
+            type="file"
+            onChange={(e) => handleFileChange(e, true)}
+            disabled={readOnly}
+          />
+          {mainImage && (
+            <Image
+              src={URL.createObjectURL(mainImage)}
+              alt="Main Image Preview"
+              width={100}
+              height={100}
+              className="mt-2"
+            />
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="additionalImages">Additional Images</Label>
+          <Input
+            id="additionalImages"
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            disabled={readOnly}
+          />
+          <div className="flex space-x-2 mt-2">
+            {additionalImages.map((img, index) => (
+              <Image
+                key={index}
+                src={URL.createObjectURL(img)}
+                alt={`Additional Image ${index + 1}`}
+                width={50}
+                height={50}
+                className="border"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Label>Types</Label>
+          <div className="flex space-x-2 mt-2">
+            {types.map((type) => (
+              <Badge
+                key={type}
+                className={`cursor-pointer ${
+                  selectedTypes.includes(type) ? "bg-blue-500 text-white" : "bg-gray-200"
+                }`}
+                onClick={() => !readOnly && toggleType(type)}
+              >
+                {type}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {!readOnly && (
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Asset"}
           </Button>
         )}
       </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Left Column */}
-        <div className="space-y-6">
-          <div>
-            <Label>Main Image</Label>
-            <div className="mt-2 border rounded-lg overflow-hidden">
-              <Image
-                src={mainImage}
-                alt="Main asset image"
-                width={800}
-                height={600}
-                className="w-full aspect-4/3 object-cover"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Additional images</Label>
-            <div className="mt-2 grid grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="border rounded-lg overflow-hidden">
-                  <Image
-                    src="/placeholder.svg"
-                    alt={`Additional image ${i + 1}`}
-                    width={200}
-                    height={200}
-                    className="w-full aspect-square object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-            {!readOnly && (
-              <Button variant="outline" className="w-full mt-4">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload file
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="collection">Collection*</Label>
-            <div className="mt-2 flex gap-4">
-              <Button variant="outline" className="flex-1">
-                Choose existing
-              </Button>
-              <Button variant="outline" className="flex-1">
-                <Plus className="w-4 h-4 mr-2" />
-                Create new
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              placeholder="Input your asset name"
-              className="mt-2"
-              readOnly={readOnly}
-            />
-          </div>
-
-          <div>
-            <Label>Description</Label>
-            <div className="mt-2">
-              <RichTextEditor
-                value={description}
-                onChange={setDescription}
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Type</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {types.map((type) => (
-                <Badge
-                  key={type}
-                  variant={selectedTypes.includes(type) ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => !readOnly && setSelectedTypes([...selectedTypes, type])}
-                >
-                  {type}
-                </Badge>
-              ))}
-              {!readOnly && (
-                <Button variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add type
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <Label>Files & links</Label>
-            <div className="mt-2 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-muted rounded">doc</div>
-                <div className="flex-1">
-                  <div>File_for_upload.doc</div>
-                  <div className="text-sm text-muted-foreground">6.5 mb</div>
-                </div>
-              </div>
-              {!readOnly && (
-                <div className="flex gap-4">
-                  <Button variant="outline" className="flex-1">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload file
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    Add link
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {!readOnly && (
-            <Button onClick={handleSave} className="w-full">
-              Save
-            </Button>
-          )}
-        </div>
-      </div>
     </div>
-  )
-}
-
+  );
+};

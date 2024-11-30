@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import Link from "next/link";
 
 export function UnregisteredAssetGrid() {
   const supabase = useSupabaseClient();
@@ -40,7 +41,7 @@ export function UnregisteredAssetGrid() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h2 className="text-xl font-semibold mb-4">Unregistered Assets</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <Link href="/assets/create"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {Array.from({ length: allocation || 0 }).map((_, index) => (
           <button
             key={index}
@@ -64,7 +65,7 @@ export function UnregisteredAssetGrid() {
             Create child asset
           </button>
         ))}
-      </div>
+      </div></Link>
     </div>
   );
 };

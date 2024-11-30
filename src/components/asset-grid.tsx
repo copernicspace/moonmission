@@ -11,7 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { CollectionCard } from "./collection-card"; // Assuming CollectionCard exists for displaying collections
 import { UnregisteredAssetGrid } from "./allocation";
 
@@ -28,6 +28,8 @@ type ChildAsset = {
 };
 
 export function AssetGrid() {
+  const session = useSession();
+
   const [assets, setAssets] = useState<ChildAsset[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,8 +43,9 @@ export function AssetGrid() {
       const { data, error } = await supabase
         .from("childassets")
         .select(
-          "id, title, thumbnail, mainmedia, description, units, collection_id, parent_payload_id, created_at"
-        );
+          "id, title, thumbnail, mainmedia, description, author, units, collection_id, parent_payload_id, created_at"
+        )
+        .eq('author', session?.user.id);
 
       if (error) {
         console.error("Error fetching assets:", error);
