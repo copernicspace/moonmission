@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
 interface RichTextEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  readOnly?: boolean;
-};
+  value: string
+  onChange: (value: string) => void
+  readOnly?: boolean
+}
 
 export function RichTextEditor({ value, onChange, readOnly = false }: RichTextEditorProps) {
   return (
@@ -61,5 +61,6 @@ export function RichTextEditor({ value, onChange, readOnly = false }: RichTextEd
         readOnly={readOnly}
       />
     </div>
-  );
+  )
 }
+

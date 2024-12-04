@@ -1,212 +1,292 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Plus, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RichTextEditor } from "./rich-text-editor";
-import { Badge } from "@/components/ui/badge";
-import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
+import { useState, useRef, useEffect } from "react"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { Plus, Upload, File, LinkIcon } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface AssetFormProps {
-  initialData?: any;
-  readOnly?: boolean;
+  initialData?: any
+  readOnly?: boolean
 }
 
 export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
-  const router = useRouter();
-  const supabase = useSupabaseClient();
-  const session = useSession();
+  const router = useRouter()
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mainImage, setMainImage] = useState<string | null>(null)
+  const [additionalImages, setAdditionalImages] = useState<string[]>([])
+  const [description, setDescription] = useState("")
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Space asset"])
+  const [files, setFiles] = useState<{ name: string; type: string }[]>([])
+  const [links, setLinks] = useState<string[]>([])
+  const [newLink, setNewLink] = useState("")
 
-  const [mainImage, setMainImage] = useState<File | null>(null);
-  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
-  const [description, setDescription] = useState("");
-  const [title, setTitle] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Space asset"]);
-  const [isSaving, setIsSaving] = useState(false);
+  const types = ["Space asset", "Satellite", "Imagery"]
 
-  const types = ["Space asset", "Satellite", "Imagery"];
-
-  const handleImageUpload = async (file: File, folder: string) => {
-    const uniqueFileName = `${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from("payload")
-      .upload(`${folder}/${uniqueFileName}`, file);
-
-    if (error) {
-      console.error("Image upload failed:", error.message);
-      return null;
-    };
-
-    return data?.path || null;
-  };
+  useEffect(() => {
+    return () => {
+      if (mainImage) URL.revokeObjectURL(mainImage)
+      additionalImages.forEach(img => URL.revokeObjectURL(img))
+    }
+  }, [mainImage, additionalImages])
 
   const handleSave = async () => {
-    if (!session?.user) {
-      alert("You must be logged in to create an asset.");
-      return;
-    };
+    router.push("/assets/view/1")
+  }
 
-    setIsSaving(true);
+  const handleEdit = () => {
+    router.push("/assets/edit/1")
+  }
 
-    try {
-      let mainImagePath = null;
-      const additionalImagePaths: string[] = [];
-
-      if (mainImage) {
-        mainImagePath = await handleImageUpload(mainImage, "main");
-        if (!mainImagePath) throw new Error("Main image upload failed");
-      };
-
-      for (const image of additionalImages) {
-        const path = await handleImageUpload(image, "additional");
-        if (path) {
-          additionalImagePaths.push(path);
-        };
-      };
-
-      const { error } = await supabase.from("assets").insert({
-        title,
-        description,
-        type: selectedTypes.join(", "),
-        main_image: mainImagePath,
-        author: session?.user.id,
-        additional_images: additionalImagePaths,
-        user_id: session.user.id,
-      });
-
-      if (error) {
-        console.error("Asset creation failed:", error.message);
-        alert("Failed to create asset: " + error.message);
-        return;
-      };
-
-      alert("Asset created successfully!");
-      router.push("/assets"); // Navigate to asset list or view page
-    } catch (error) {
-      console.error(error);
-      alert("An error occurred while saving the asset.");
-    } finally {
-      setIsSaving(false);
-    };
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isMain = false) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      if (isMain) {
-        setMainImage(files[0]);
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (files) {
+      const imageUrls = Array.from(files).map(file => URL.createObjectURL(file))
+      if (!mainImage) {
+        setMainImage(imageUrls[0])
+        setAdditionalImages(prevImages => [...prevImages, ...imageUrls.slice(1)].slice(0, 3))
       } else {
-        setAdditionalImages((prev) => [...prev, ...Array.from(files)]);
+        setAdditionalImages(prevImages => [...prevImages, ...imageUrls].slice(0, 3))
       }
     }
-  };
+  }
 
-  const toggleType = (type: string) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = event.target.files
+    if (uploadedFiles) {
+      const newFiles = Array.from(uploadedFiles).map(file => ({ name: file.name, type: file.type }))
+      setFiles(prevFiles => [...prevFiles, ...newFiles])
+    }
+  }
+
+  const handleAddLink = () => {
+    if (newLink) {
+      setLinks(prevLinks => [...prevLinks, newLink])
+      setNewLink("")
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Create an Asset</h1>
-          <p className="text-muted-foreground">Fill out the form to create a new asset.</p>
+          <p className="text-muted-foreground">
+            Once your item is minted you will not be able to change any of its info
+          </p>
         </div>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter asset title"
-            disabled={readOnly}
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <RichTextEditor
-  value={description}
-  onChange={(value) => setDescription(value)}
-  readOnly={readOnly}
-/>
-        </div>
-
-        <div>
-          <Label htmlFor="mainImage">Main Image</Label>
-          <Input
-            id="mainImage"
-            type="file"
-            onChange={(e) => handleFileChange(e, true)}
-            disabled={readOnly}
-          />
-          {mainImage && (
-            <Image
-              src={URL.createObjectURL(mainImage)}
-              alt="Main Image Preview"
-              width={100}
-              height={100}
-              className="mt-2"
-            />
-          )}
-        </div>
-
-        <div>
-          <Label htmlFor="additionalImages">Additional Images</Label>
-          <Input
-            id="additionalImages"
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            disabled={readOnly}
-          />
-          <div className="flex space-x-2 mt-2">
-            {additionalImages.map((img, index) => (
-              <Image
-                key={index}
-                src={URL.createObjectURL(img)}
-                alt={`Additional Image ${index + 1}`}
-                width={50}
-                height={50}
-                className="border"
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <Label>Types</Label>
-          <div className="flex space-x-2 mt-2">
-            {types.map((type) => (
-              <Badge
-                key={type}
-                className={`cursor-pointer ${
-                  selectedTypes.includes(type) ? "bg-blue-500 text-white" : "bg-gray-200"
-                }`}
-                onClick={() => !readOnly && toggleType(type)}
-              >
-                {type}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {!readOnly && (
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Asset"}
+        {readOnly && (
+          <Button onClick={handleEdit} variant="outline">
+            Edit
           </Button>
         )}
       </div>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Left Column */}
+        <div className="space-y-6">
+          <div>
+            <Label>Main Image</Label>
+            <div className="mt-2 border rounded-lg overflow-hidden aspect-4/3">
+              {mainImage ? (
+                <Image
+                  src={mainImage}
+                  alt="Main asset image"
+                  layout="responsive"
+                  width={800}
+                  height={600}
+                  objectFit="cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted">
+                  <p className="text-muted-foreground">No image uploaded</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label>Additional images</Label>
+            <div className="mt-2 grid grid-cols-3 gap-4">
+              {additionalImages.map((image, index) => (
+                <div key={index} className="border rounded-lg overflow-hidden aspect-square">
+                  <Image
+                    src={image}
+                    alt={`Additional image ${index + 1}`}
+                    layout="responsive"
+                    width={200}
+                    height={200}
+                    objectFit="cover"
+                  />
+                </div>
+              ))}
+              {Array.from({ length: 3 - additionalImages.length }).map((_, index) => (
+                <div key={`empty-${index}`} className="border rounded-lg overflow-hidden aspect-square flex items-center justify-center bg-muted">
+                  <p className="text-muted-foreground">No image</p>
+                </div>
+              ))}
+            </div>
+            {!readOnly && (
+              <Button variant="outline" className="w-full mt-4" onClick={() => imageInputRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload image
+              </Button>
+            )}
+            <input
+              type="file"
+              ref={imageInputRef}
+              className="hidden"
+              onChange={handleImageUpload}
+              accept="image/*"
+              multiple
+            />
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="collection">Collection*</Label>
+            <div className="mt-2 flex gap-4">
+              <Button variant="outline" className="flex-1">
+                Choose existing
+              </Button>
+              <Button variant="outline" className="flex-1">
+                <Plus className="w-4 h-4 mr-2" />
+                Create new
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              placeholder="Input your asset name"
+              className="mt-2"
+              readOnly={readOnly}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Input description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-2"
+              rows={5}
+              readOnly={readOnly}
+            />
+          </div>
+
+          <div>
+            <Label>Type</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {types.map((type) => (
+                <Badge
+                  key={type}
+                  variant={selectedTypes.includes(type) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => !readOnly && setSelectedTypes(prev => 
+                    prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                  )}
+                >
+                  {type}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>Files & links</Label>
+            <div className="mt-2 space-y-4">
+              {files.length === 0 && links.length === 0 ? (
+                <div className="text-muted-foreground">No files attached</div>
+              ) : (
+                <>
+                  {files.map((file, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="p-2 bg-muted rounded">
+                        <File className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div>{file.name}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {links.map((link, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="p-2 bg-muted rounded">
+                        <LinkIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div>{link}</div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              {!readOnly && (
+                <div className="flex gap-4">
+                  <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload file
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    multiple
+                  />
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex-1">
+                        Add link
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add a link</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          placeholder="Enter link URL"
+                          value={newLink}
+                          onChange={(e) => setNewLink(e.target.value)}
+                        />
+                        <Button onClick={handleAddLink}>Add</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!readOnly && (
+            <Button onClick={handleSave} className="w-full">
+              Save
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
-  );
-};
+  )
+}
+

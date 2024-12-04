@@ -1,11 +1,11 @@
 import Navbar from "@/components/navbar"
 import { CollectionForm } from "@/components/collection-form"
 
-export default function CreateCollectionPage() {
+export default function EditCollectionPage() {
   return (
     <div>
       <Navbar />
-      <CollectionForm />
+      <CollectionForm initialData={{}} />
     </div>
   )
 }
