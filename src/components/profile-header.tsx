@@ -73,7 +73,7 @@ export function ProfileHeader() {
       <div className="container mx-auto px-4">
         <div className="relative -mt-20 mb-4">
           <Image
-            src="Arby.jpg"
+            src="/CopernicSpaceLogo.png"
             alt="Profile"
             width={160}
             height={160}

@@ -136,8 +136,10 @@ export function AssetGrid() {
           {/* Conditional Rendering for Assets */}
           {assets.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-              {assets.map((asset) => {
-                const imageUrl = `${supabaseUrl}/storage/v1/object/public/payload/${asset.thumbnail}`;
+{assets.map((asset) => {
+                const imageUrl = asset.thumbnail
+                  ? `${supabaseUrl}/storage/v1/object/public/payload/${encodeURIComponent(asset.thumbnail)}`
+                  : "/path/to/default/image.jpg"; // Replace with a fallback image path
                 return (
                   <div
                     key={asset.id}

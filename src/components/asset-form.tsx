@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react"
 
 interface AssetFormProps {
   initialData?: any
@@ -23,6 +24,9 @@ interface AssetFormProps {
 }
 
 export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
+  const supabase = useSupabaseClient();
+  const session = useSession();
+
   const router = useRouter()
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -32,7 +36,9 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Space asset"])
   const [files, setFiles] = useState<{ name: string; type: string }[]>([])
   const [links, setLinks] = useState<string[]>([])
-  const [newLink, setNewLink] = useState("")
+  const [newLink, setNewLink] = useState("");
+  const [assetName, setAssetName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const types = ["Space asset", "Satellite", "Imagery"]
 
@@ -43,26 +49,126 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
     }
   }, [mainImage, additionalImages])
 
-  const handleSave = async () => {
-    router.push("/assets/view/1")
-  }
 
   const handleEdit = () => {
     router.push("/assets/edit/1")
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      const imageUrls = Array.from(files).map(file => URL.createObjectURL(file))
-      if (!mainImage) {
-        setMainImage(imageUrls[0])
-        setAdditionalImages(prevImages => [...prevImages, ...imageUrls.slice(1)].slice(0, 3))
-      } else {
-        setAdditionalImages(prevImages => [...prevImages, ...imageUrls].slice(0, 3))
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!session?.user) return;
+  
+    const files = event.target.files;
+  
+    if (!files) return;
+  
+    const uploadedPaths: string[] = [];
+  
+    for (const file of Array.from(files)) {
+      const uniqueFileName = `${Date.now()}_${file.name}`; // Unique file name
+      const { data, error } = await supabase.storage
+        .from("payload")
+        .upload(uniqueFileName, file);  // Upload directly to root, no folder
+  
+      if (error) {
+        console.error("Image upload failed:", error.message);
+        continue;
+      }
+  
+      if (data?.path) {
+        uploadedPaths.push(data.path);
       }
     }
-  }
+  
+    if (uploadedPaths.length > 0) {
+      if (!mainImage) {
+        setMainImage(uploadedPaths[0]);
+        setAdditionalImages((prevImages) =>
+          [...prevImages, ...uploadedPaths.slice(1)].slice(0, 3)
+        );
+      } else {
+        setAdditionalImages((prevImages) =>
+          [...prevImages, ...uploadedPaths].slice(0, 3)
+        );
+      }
+    }
+  };
+  
+  const handleSave = async () => {
+    if (!session?.user) {
+      alert("You must be logged in to create an asset.");
+      return;
+    }
+  
+    setIsSaving(true);
+  
+    try {
+      let mainImagePath = null;
+      const additionalImagePaths: string[] = [];
+  
+      // Upload Main Image
+      if (mainImage) {
+        const uniqueFileName = `${Date.now()}_${mainImage.split('/').pop()}`;
+        const { data, error } = await supabase.storage
+          .from("payload")
+          .upload(uniqueFileName, mainImage);  // Upload directly to root, no folder
+  
+        if (error) {
+          console.error("Main image upload failed:", error.message);
+          throw new Error("Main image upload failed");
+        }
+  
+        if (data?.path) {
+          mainImagePath = data.path;
+        }
+      }
+  
+      // Upload Additional Images
+      for (const image of additionalImages) {
+        const uniqueFileName = `${Date.now()}_${image.split('/').pop()}`;
+        const { data, error } = await supabase.storage
+          .from("payload")
+          .upload(uniqueFileName, image);  // Upload directly to root, no folder
+  
+        if (error) {
+          console.error(`Additional image upload failed: ${error.message}`);
+          continue;
+        }
+  
+        if (data?.path) {
+          additionalImagePaths.push(data.path);
+        }
+      }
+  
+      const { error } = await supabase.from("childassets").insert({
+        title: assetName,
+        description,
+        main_image: mainImagePath,
+        thumbnail: mainImagePath,
+        mainmedia: mainImagePath,
+        units: 1,
+        parent_payload_id: 1,
+        mainfile: mainImagePath,
+        additional_images: additionalImagePaths,
+        files,
+        links,
+        author: session.user.id,
+      });
+  
+      if (error) {
+        console.error("Asset creation failed:", error.message);
+        alert("Failed to create asset: " + error.message);
+        return;
+      }
+  
+      alert("Asset created successfully!");
+      router.push("/"); 
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while saving the asset.");
+    } finally {
+      setIsSaving(false);
+    }
+  };  
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = event.target.files
@@ -76,8 +182,8 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
     if (newLink) {
       setLinks(prevLinks => [...prevLinks, newLink])
       setNewLink("")
-    }
-  }
+    };
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -96,7 +202,6 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Left Column */}
         <div className="space-y-6">
           <div>
             <Label>Main Image</Label>
@@ -156,7 +261,6 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
           </div>
         </div>
 
-        {/* Right Column */}
         <div className="space-y-6">
           <div>
             <Label htmlFor="collection">Collection*</Label>
@@ -178,6 +282,7 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
               placeholder="Input your asset name"
               className="mt-2"
               readOnly={readOnly}
+              onChange={(e) => setAssetName(e.target.value)} 
             />
           </div>
 
@@ -287,6 +392,5 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
         </div>
       </div>
     </div>
-  )
-}
-
+  );
+};
