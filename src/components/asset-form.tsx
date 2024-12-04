@@ -39,7 +39,7 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
     if (error) {
       console.error("Image upload failed:", error.message);
       return null;
-    }
+    };
 
     return data?.path || null;
   };
@@ -48,7 +48,7 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
     if (!session?.user) {
       alert("You must be logged in to create an asset.");
       return;
-    }
+    };
 
     setIsSaving(true);
 
@@ -59,14 +59,14 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
       if (mainImage) {
         mainImagePath = await handleImageUpload(mainImage, "main");
         if (!mainImagePath) throw new Error("Main image upload failed");
-      }
+      };
 
       for (const image of additionalImages) {
         const path = await handleImageUpload(image, "additional");
         if (path) {
           additionalImagePaths.push(path);
-        }
-      }
+        };
+      };
 
       const { error } = await supabase.from("assets").insert({
         title,
@@ -82,7 +82,7 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
         console.error("Asset creation failed:", error.message);
         alert("Failed to create asset: " + error.message);
         return;
-      }
+      };
 
       alert("Asset created successfully!");
       router.push("/assets"); // Navigate to asset list or view page
@@ -91,7 +91,7 @@ export function AssetForm({ initialData, readOnly = false }: AssetFormProps) {
       alert("An error occurred while saving the asset.");
     } finally {
       setIsSaving(false);
-    }
+    };
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isMain = false) => {
